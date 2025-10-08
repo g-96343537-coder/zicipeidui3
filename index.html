@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>字词与图片连线游戏（进阶版）</title>
+<title>字词与图片连线游戏）</title>
 <style>
   body {
     font-family: 'Microsoft YaHei', sans-serif;
@@ -23,7 +23,7 @@
   }
   .game-container {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     width: 90%;
     max-width: 800px;
     margin-top: 30px;
@@ -34,13 +34,23 @@
     gap: 15px;
   }
   .word {
-    padding: 10px 15px;
+    width: 100px;
+    height: 100px;
+    line-height: 100px;
+    padding: 0;
     background: #fff;
     border: 2px solid #0077b6;
     border-radius: 10px;
     text-align: center;
     cursor: grab;
-    font-size: 1.5rem;
+    font-size: 2.5rem;
+    user-select: none;
+    flex-shrink: 0;
+    transition: transform 0.2s, background-color 0.3s;
+  }
+  .word.dragging {
+    opacity: 0.7;
+    transform: scale(1.1);
   }
   .image-box {
     width: 100px;
@@ -51,6 +61,8 @@
     align-items: center;
     justify-content: center;
     background: #caf0f8;
+    flex-shrink: 0;
+    transition: background-color 0.3s;
   }
   .image-box img {
     width: 70px;
@@ -58,9 +70,15 @@
   }
   .correct {
     background-color: #b7e4c7 !important;
+    animation: flashCorrect 0.5s;
   }
   .wrong {
     background-color: #ffb3b3 !important;
+  }
+  @keyframes flashCorrect {
+    0% { background-color: #b7e4c7; }
+    50% { background-color: #ffff7f; }
+    100% { background-color: #b7e4c7; }
   }
   button {
     margin-top: 25px;
@@ -75,7 +93,7 @@
 </style>
 </head>
 <body>
-  <h1>字词与图片连线游戏（进阶版）</h1>
+  <h1>字词与图片连线游戏</h1>
   <p>拖动左侧字卡，放到右侧相应的图片框中。</p>
   <div class="score" id="score">得分：0 / 10</div>
   <div class="game-container">
@@ -87,16 +105,16 @@
 
 <script>
 const data = [
-  {word: '朋', img: 'https://cdn-icons-png.flaticon.com/512/456/456212.png'},
-  {word: '友', img: 'https://cdn-icons-png.flaticon.com/512/1998/1998618.png'},
-  {word: '操', img: 'https://cdn-icons-png.flaticon.com/512/3048/3048122.png'},
-  {word: '跑', img: 'https://cdn-icons-png.flaticon.com/512/726/726456.png'},
-  {word: '草', img: 'https://cdn-icons-png.flaticon.com/512/415/415733.png'},
-  {word: '地', img: 'https://cdn-icons-png.flaticon.com/512/616/616408.png'},
-  {word: '课', img: 'https://cdn-icons-png.flaticon.com/512/2921/2921822.png'},
-  {word: '识', img: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'},
-  {word: '儿', img: 'https://cdn-icons-png.flaticon.com/512/1077/1077012.png'},
-  {word: '歌', img: 'https://cdn-icons-png.flaticon.com/512/727/727218.png'}
+  {word: '跑', img: 'https://www.pinclipart.com/picdir/big/31-311858_clipart-royalty-free-download-force-friction-newtons-run.png'},
+  {word: '书', img: 'https://pluspng.com/img-png/book-png-book-stack-png-image-25686-1024.png'},
+  {word: '草', img: 'https://png.pngtree.com/png-clipart/20230502/original/pngtree-grass-lawn-green-plant-png-image_9132303.png'},
+  {word: '笔', img: 'https://static.vecteezy.com/system/resources/previews/022/448/543/original/illustration-of-colorful-pencil-with-eraser-free-png.png'},
+  {word: '门', img: 'https://pngimg.com/uploads/door/door_PNG17565.png'},
+  {word: '天', img: 'https://pluspng.com/img-png/png-sky-background-blue-sky-jpg-1800.jpg'},
+  {word: '树', img: 'https://www.pngplay.com/wp-content/uploads/4/Tree-Free-PNG.png'},
+  {word: '手', img: 'https://static.vecteezy.com/system/resources/previews/011/888/284/original/hand-gesture-cartoon-free-png.png'},
+  {word: '看', img: 'https://clipart-library.com/2023/little-boy-standing-see-using-telescope_97632-6346.jpg'},
+  {word: '写', img: 'https://www.pngmart.com/files/20/Writing-PNG-Free-Download.png'}
 ];
 
 let shuffled = [];
@@ -115,17 +133,22 @@ function createGame() {
   score = 0;
   updateScore();
 
+  // 创建字卡
   shuffled.forEach(item => {
     const wordDiv = document.createElement('div');
     wordDiv.className = 'word';
     wordDiv.textContent = item.word;
     wordDiv.draggable = true;
     wordDiv.id = 'word-' + item.word;
+
     wordDiv.ondragstart = drag;
+    wordDiv.ondragend = () => wordDiv.classList.remove('dragging');
     wordDiv.onclick = () => speakWord(item.word);
+
     wordList.appendChild(wordDiv);
   });
 
+  // 创建图片框
   data.forEach(item => {
     const box = document.createElement('div');
     box.className = 'image-box';
@@ -142,6 +165,7 @@ function allowDrop(e) {
 }
 
 function drag(e) {
+  e.target.classList.add('dragging');
   e.dataTransfer.setData('text', e.target.id);
 }
 
@@ -149,9 +173,18 @@ function drop(e) {
   e.preventDefault();
   const dataId = e.dataTransfer.getData('text');
   const dragged = document.getElementById(dataId);
-  if (!e.target.textContent.includes(dragged.textContent)) {
-    e.target.appendChild(dragged);
+
+  // 找到最近的 image-box
+  const box = e.target.closest('.image-box');
+  if (!box) return;
+
+  // 如果 box 已经有字卡，先移回左侧
+  const existing = box.querySelector('.word');
+  if (existing) {
+    document.getElementById('wordList').appendChild(existing);
   }
+
+  box.appendChild(dragged);
 }
 
 function checkAnswers() {
@@ -168,6 +201,8 @@ function checkAnswers() {
         box.classList.add('wrong');
         box.classList.remove('correct');
       }
+    } else {
+      box.classList.remove('correct', 'wrong');
     }
   });
   score = correctCount;
